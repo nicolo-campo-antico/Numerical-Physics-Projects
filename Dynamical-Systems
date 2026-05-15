@@ -1,0 +1,336 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+from scipy.interpolate import interp1d
+
+
+# ============================================================
+# --- MODELS (Add Your Own) ---
+# ============================================================
+
+def simple_pendulum(t, y, p):
+    theta, omega = y
+    
+    dtheta = omega
+    domega = -(p['g']/p['l'])*np.sin(theta)
+    
+    return [dtheta, domega]
+
+
+def double_pendulum(t, y, p):
+
+    t1, w1, t2, w2 = y
+
+    delta = t2 - t1
+
+    den = (
+        (p['m1'] + p['m2']) * p['L1']
+        - p['m2'] * p['L1'] * np.cos(delta)**2
+    )
+
+    dw1 = (
+        p['m2'] * p['L1'] * w1**2 * np.sin(delta) * np.cos(delta)
+        + p['m2'] * p['g'] * np.sin(t2) * np.cos(delta)
+        + p['m2'] * p['L2'] * w2**2 * np.sin(delta)
+        - (p['m1'] + p['m2']) * p['g'] * np.sin(t1)
+    ) / den
+
+    dw2 = (
+        -p['m2'] * p['L2'] * w2**2 * np.sin(delta) * np.cos(delta)
+        + (p['m1'] + p['m2']) * p['g'] * np.sin(t1) * np.cos(delta)
+        - (p['m1'] + p['m2']) * p['L1'] * w1**2 * np.sin(delta)
+        - (p['m1'] + p['m2']) * p['g'] * np.sin(t2)
+    ) / ((p['L2']/p['L1']) * den)
+
+    return [w1, dw1, w2, dw2]
+
+
+def duffing(t, y, p):
+    x, v = y
+    return [v, -p['k'] * v + x - x**3 + p['F0'] * np.cos(p['w'] * t)]
+
+# ============================================================
+# --- ENERGY ---
+# ============================================================
+
+def calculate_energy(sol, model_func, p):
+    y = sol.y
+    model_name = model_func.__name__
+        
+    if model_name == "simple_pendulum":
+        theta, omega = y
+        T = 0.5 * p['m1'] * (p['l'] * omega)**2
+        V = p['m1'] * p['g'] * p['l'] * (1 - np.cos(theta))
+    
+    elif model_name == "double_pendulum":
+        t1, w1, t2, w2 = y
+        m1, m2, L1, L2, g = p['m1'], p['m2'], p['L1'], p['L2'], p['g']
+        
+        T1 = 0.5 * m1 * (L1 * w1)**2
+        T2 = 0.5 * m2 * ((L1 * w1)**2 + (L2 * w2)**2 + 2 * L1 * L2 * w1 * w2 * np.cos(t1 - t2))
+        T = T1 + T2
+        
+        V1 = -m1 * g * L1 * np.cos(t1)
+        V2 = -m2 * g * (L1 * np.cos(t1) + L2 * np.cos(t2))
+        V = V1 + V2 + (m1 + m2) * g * L1 + m2 * g * L2
+        
+    else:
+        return None, None, None
+        
+    return T, V, T + V
+
+
+##############################################################
+###########           SIMULATION CORE          ###############
+##############################################################
+
+
+# ============================================================
+# --- MOTORE DI SIMULAZIONE ---
+# ============================================================
+
+def run_simulation(
+    model_func,
+    y0,
+    t_span,
+    params,
+    labels,
+    n_points=5000,
+    method = 'RK45'
+):
+
+    if len(y0) != len(labels):
+
+        raise ValueError(
+            f"Error: y0 has {len(y0)} elements, "
+            f"but \'labels\' has {len(labels)}!"
+        )
+
+    try:
+        model_func(0, y0, params)
+
+    except KeyError as e:
+
+        raise KeyError(
+            f"Parameter missing for: "
+            f"{model_func.__name__}: {e}"
+        )
+
+    t_eval = np.linspace(
+        t_span[0],
+        t_span[1],
+        n_points
+    )
+
+    sol = solve_ivp(
+        fun=model_func,
+        t_span=t_span,
+        y0=y0,
+        args=(params,),
+        method=method,
+        t_eval=t_eval,
+        rtol=1e-8,
+        atol=1e-10
+    )
+
+    return sol
+
+
+# ============================================================
+# --- PLOTTING ---
+# ============================================================
+
+def plot_results(sol, labels, model_func, params):
+    model_name = model_func.__name__
+    T, V, E = calculate_energy(sol, model_func, params)
+    
+    n_vars = len(labels)
+    n_plots = n_vars + (1 if E is not None else 0)
+    
+    fig, axes = plt.subplots(n_plots, 1, figsize=(10, 2.5 * n_plots), sharex=True)
+    if n_plots == 1: axes = [axes]
+
+    # --- Plot Variabili di Stato ---
+    colors = plt.cm.viridis(np.linspace(0, 0.8, n_vars))
+    for i in range(n_vars):
+        axes[i].plot(sol.t, sol.y[i], color=colors[i], lw=1.5)
+        axes[i].set_ylabel(labels[i], fontsize=12)
+        axes[i].grid(True, alpha=0.3)
+        axes[i].spines['top'].set_visible(False)
+        axes[i].spines['right'].set_visible(False)
+
+    # --- Plot Energia (se disponibile) ---
+    if E is not None:
+        ax_en = axes[-1]
+        ax_en.plot(sol.t, E, 'k-', lw=2, label='Total (E)')
+        ax_en.plot(sol.t, T, 'r--', lw=1, label='Kinetic (T)', alpha=0.6)
+        ax_en.plot(sol.t, V, 'b--', lw=1, label='Potential (V)', alpha=0.6)
+        ax_en.set_ylabel("Energy [J]", fontsize=12)
+        ax_en.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax_en.grid(True, alpha=0.3)
+
+    axes[-1].set_xlabel("Time [s]", fontsize=12)
+    plt.suptitle(f"System Analysis: {model_name.replace('_', ' ').upper()}", fontsize=14, y=0.98)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()
+
+def plot_phase_space(sol, labels):
+    y = sol.y
+    n_pairs = y.shape[0] // 2
+    
+    if n_pairs == 0: return
+
+    fig, axes = plt.subplots(1, n_pairs, figsize=(5 * n_pairs, 5))
+    if n_pairs == 1: axes = [axes]
+
+    for i in range(n_pairs):
+        q, p = y[2*i], y[2*i+1]
+        axes[i].plot(q, p, color='teal', lw=0.7, alpha=0.8)
+        
+        axes[i].plot(q[0], p[0], 'go', label='Start')
+        axes[i].set_xlabel(labels[2*i])
+        axes[i].set_ylabel(labels[2*i+1])
+        axes[i].set_title(f"Orbit {i+1}")
+        axes[i].grid(True, alpha=0.3)
+        axes[i].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# ============================================================
+# --- POINCARÉ SECTION (switch) ---
+# ============================================================
+
+def plot_poincare(sol, labels, period):
+    t_min, t_max = sol.t[0], sol.t[-1]
+    
+    n_start = int(t_min / period) + 5  
+    n_end = int(t_max / period)
+    t_poincare = np.arange(n_start, n_end) * period
+
+    if len(t_poincare) == 0:
+        print("Increase time interval in order to analyze Poincaré.")
+        return
+
+    interp_func = interp1d(sol.t, sol.y, kind='linear', axis=1, fill_value="extrapolate")
+    y_poincare = interp_func(t_poincare)
+
+    plt.figure(figsize=(7, 6))
+    plt.scatter(
+        y_poincare[0, :], 
+        y_poincare[1, :], 
+        s=10, 
+        color='red', 
+        edgecolor='black', 
+        linewidth=0.2,
+        alpha=0.7
+    )
+    
+    plt.xlabel(f"Displacement {labels[0]}")
+    plt.ylabel(f"Velocity {labels[1]}")
+    plt.title(f"Poincaré Section (Sampled each every T = {period:.3f}s)")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    
+    
+    plt.tight_layout()
+    plt.show()
+    
+##############################################################
+##############################################################
+##############################################################
+
+
+# ============================================================
+# --- GLOBAL PARAMETERS ---
+# ============================================================
+
+global_params = {
+
+    "g": 9.81, "l": 1.0,
+    
+    "m1": 1.0, "m2": 1.0,
+    
+    "L1": 1.0, "L2": 1.0,
+    
+    'k': 1000.0,
+    
+    "F0": 0.3, "w": 1.2,
+    
+}
+
+
+# ============================================================
+# --- CONFIGURATION ---
+# ============================================================
+
+config = {
+
+    "model": double_pendulum,
+    
+    "method": "RK45",
+    
+    ### FORMAT: y0 = [q1, v1, q2, v2, ..., qN, vN] ###
+    
+    "y0": [np.pi/2, 0.0,
+           0.0, 0.0], 
+    
+    "labels": [r"$\theta_1$", r"$\omega_1$",
+               r"$\theta_2$", r"$\omega_2$"],
+
+    "t_span": (0, 50),
+
+    # --- Poincaré selector ---
+    "use_poincare": False,
+
+    # Solo se attivo
+    "poincare_period":
+        2*np.pi / global_params["w"]
+
+}
+
+
+# ============================================================
+# --- EXECUTION ---
+# ============================================================
+
+sol = run_simulation(
+
+    config["model"],
+
+    config["y0"],
+
+    config["t_span"],
+
+    global_params,
+
+    config["labels"],
+    
+    method=config["method"]
+
+)
+
+
+# ============================================================
+# --- PLOT ---
+# ============================================================
+
+plot_results(
+    sol, 
+    config["labels"], 
+    config["model"], 
+    global_params
+)
+
+
+
+plot_phase_space(
+    sol, 
+    config["labels"]
+)
+
+if config["use_poincare"]:
+    plot_poincare(
+        sol,
+        config["labels"],
+        config["poincare_period"]
+    )
