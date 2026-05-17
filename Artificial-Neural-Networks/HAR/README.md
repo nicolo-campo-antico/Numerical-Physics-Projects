@@ -38,7 +38,7 @@ the model predicts which of 6 activities a subject is performing:
 │       ├── X_test.txt
 │       ├── y_test.txt
 │       └── subject_test.txt
-├── models/                                     # Saved checkpoints (created at runtime)
+├── submissions/
 └── README.md
 ```
  
@@ -51,6 +51,7 @@ the model predicts which of 6 activities a subject is performing:
 - 30 subjects, 6 activities, 561 features per timestep (accelerometer + gyroscope)
 - Pre-segmented windows of 128 timesteps at 50 Hz with 50% overlap
 - 7352 training samples, 2947 test samples
+
 **Download:**
 ```
 https://archive.ics.uci.edu/ml/machine-learning-databases/00240/UCI%20HAR%20Dataset.zip
