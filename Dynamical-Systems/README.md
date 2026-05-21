@@ -4,6 +4,10 @@ Simple Numerical simulation and visualization toolkit for dynamical systems usin
 
 This project solves ordinary differential equations (ODEs), analyzing system dynamics, and visualizing trajectories, phase spaces, and energy evolution for several classical physical systems.
 
+<img width="1000" height="500" alt="double_pendulum_orbits" src="https://github.com/user-attachments/assets/6cf4abbe-8d6a-404e-be11-515d63754aa0" />
+<img width="1470" height="886" alt="double_pendulum" src="https://github.com/user-attachments/assets/0d7b2793-df93-4a0c-b26a-afe98b44edb6" />
+
+
 ---
 
 ## Features
