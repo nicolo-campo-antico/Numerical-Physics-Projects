@@ -1,4 +1,5 @@
-<img width="750" height="375" alt="ising_2d" src="https://github.com/user-attachments/assets/8f715cec-b108-4ef5-818f-29285ff43506" />
+<img width="750" height="375" alt="ising_2d" src="https://github.com/user-attachments/assets/c5ad6f2d-5d1b-4461-a7ab-9c6d94bb1679" />
+
 
 
 
