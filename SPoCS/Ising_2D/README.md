@@ -1,4 +1,6 @@
-<img width="2000" height="1000" alt="ising_2d" src="https://github.com/user-attachments/assets/c45baa44-ca6f-4a19-bf1a-311eea2c5f45" />
+<img width="2000" height="1000" alt="ising_2d" src="https://github.com/user-attachments/assets/02c9e2ec-2aae-4eef-8bc6-0ee99192b7ad" />
+
+
 
 # 2D Ising Model — Metropolis Monte Carlo
 
