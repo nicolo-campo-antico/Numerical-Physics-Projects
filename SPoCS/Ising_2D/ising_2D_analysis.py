@@ -11,11 +11,12 @@ def main():
     beta = 0.44 
     Bext = 0.0
     nthermal = 100
+    mode = "up"
     
     print("Running simulation...")
     neighbours = neigh_all(l)
     energies, magnetisations, snaps = run_simulation(
-         neighbours, nspin, n_mcs, beta, Bext, nthermal, snapshots=True
+         neighbours, nspin, n_mcs, beta, Bext, mode, nthermal, snapshots=True
     )
     obs = observables(energies, magnetisations, beta, nspin)
     
