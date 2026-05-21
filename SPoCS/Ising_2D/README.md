@@ -1,3 +1,5 @@
+<img width="2000" height="1000" alt="ising_2d" src="https://github.com/user-attachments/assets/c45baa44-ca6f-4a19-bf1a-311eea2c5f45" />
+
 # 2D Ising Model — Metropolis Monte Carlo
 
 A Python reimplementation of the 2D Ising model simulations from the **Statistical Physics of Complex Systems** course (Prof. Biscari, Politecnico di Milano). The original algorithms — written in Mathematica — have been ported, optimized for performance, and modularized for clarity and reuse.
