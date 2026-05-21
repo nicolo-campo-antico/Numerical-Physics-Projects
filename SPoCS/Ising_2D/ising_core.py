@@ -114,8 +114,8 @@ def metropolis_sweep(s, Bloc, neighbours, nspin, beta, Bext, n_steps):
 
 #################### MAIN SIMULATION ####################
 @njit
-def run_simulation(neighbours, nspin, n_mcs, beta, Bext, nthermal=0, snapshots=False):
-    s = init_spins(nspin)
+def run_simulation(neighbours, nspin, n_mcs, beta, Bext, mode_init="Random", nthermal=0, snapshots=False):
+    s = init_spins(nspin, mode_init)
     Bloc = compute_Bloc(s, neighbours, nspin)
     E = compute_energy(s, Bloc, nspin, Bext)
     M = compute_magnetisation(s, nspin)
